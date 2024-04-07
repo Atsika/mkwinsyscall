@@ -3,9 +3,9 @@
 // license that can be found in the LICENSE file.
 
 // Forked by Atsika (@_atsika) to add support for:
-// - manual module handle resolution (github.com/atsika/pelib)
-// - manual function address resolution (github.com/atsika/pelib)
-// - API hashing (sdbm)
+// - manual module handle resolution (github.com/atsika/myproc)
+// - manual function address resolution (github.com/atsika/myproc)
+// - API hashing (fnv1a)
 
 /*
 mkwinsyscall generates windows system call bodies
@@ -80,9 +80,11 @@ var (
 
 // sdbm hashing algorithm
 func hash(str string) uint32 {
-	var hash uint32 = 0
+	str = strings.ToLower(str)
+	var hash uint32 = 0x811c9dc5
 	for i := 0; i < len(str); i++ {
-		hash = uint32(str[i]) + (hash << 6) + (hash << 16) - hash
+		hash ^= uint32(str[i])
+		hash *= 0x01000193
 	}
 	return hash
 }
@@ -716,7 +718,7 @@ func ParseFiles(fs []string) (*Source, error) {
 			"unsafe",
 		},
 		ExternalImports: []string{
-			"github.com/atsika/pelib",
+			"github.com/atsika/myproc",
 		},
 	}
 	for _, file := range fs {
@@ -876,9 +878,8 @@ func (src *Source) Generate(w io.Writer) error {
 				return "NewLazySystemDLL(" + arg + ")"
 			default:
 				arg = strings.Trim(arg, "\"")
-				hashed := strings.ToLower(arg)
-				hashed = fmt.Sprintf("uint32(%#2x)", hash(arg))
-				return "pelib.NewDLL(" + hashed + ") // " + arg
+				hashed := fmt.Sprintf("uint32(%#2x)", hash(arg))
+				return "myproc.NewDLL(" + hashed + ") // " + arg
 			}
 		},
 	}
@@ -1003,7 +1004,7 @@ var (
 {{define "dlls"}}{{range .DLLs}}	mod{{.Var}} = {{newlazydll .Name}}
 {{end}}{{end}}
 
-{{define "funcnames"}}{{range .DLLFuncNames}}	proc{{.DLLFuncName}} = pelib.NewProc(mod{{.DLLVar}}, {{.DLLFuncNameHash}}) // {{.DLLFuncName}}
+{{define "funcnames"}}{{range .DLLFuncNames}}	proc{{.DLLFuncName}} = myproc.NewProc(mod{{.DLLVar}}, {{.DLLFuncNameHash}}) // {{.DLLFuncName}}
 {{end}}{{end}}
 
 {{define "helperbody"}}

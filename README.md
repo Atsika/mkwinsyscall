@@ -6,7 +6,7 @@ The official documentation can be found there: https://pkg.go.dev/golang.org/x/s
 
 ## Why this fork ?
 
-I made this fork to include my custom resolution library named [**PElib**](https://github.com/atsika/pelib). It allows you to resolve module handles (GetModuleHandle) and function (or proc) addresses (GetProcAddress) manually, without using the Windows API. It includes the API hashing technique (using sdbm hashing algo) to hide which functions are used.
+I made this fork to include my custom resolution library named [**MyProc**](https://github.com/atsika/myproc). It allows you to resolve module handles (GetModuleHandle) and function (or proc) addresses (GetProcAddress) manually, without using the Windows API. It includes the API hashing technique (using fnv1a hashing algo) to hide which functions are used.
 
 ## Usage
 
@@ -32,15 +32,15 @@ Become:
 
 ## Output
 
-The below example shows the output of the functions resolved using **PElib** by hash.
+The below example shows the output of the functions resolved using **MyProc** by hash.
 
 ```go
 var (
-	modkernel32 = pelib.NewDLL(uint32(0x8f7ee672)) // kernel32.dll
-	modntdll    = pelib.NewDLL(uint32(0xd22e2014)) // ntdll.dll
+	modkernel32 = pelib.NewDLL(uint32(0xa3e6f6c3)) // kernel32.dll
+	modntdll    = pelib.NewDLL(uint32(0xa62a3b3b)) // ntdll.dll
 
-	procHeapAlloc     = pelib.NewProc(modkernel32, uint32(0xa4695109)) // HeapAlloc
-	procRtlCopyMemory = pelib.NewProc(modntdll, uint32(0xbe91a4e0))    // RtlCopyMemory
+	procHeapAlloc     = pelib.NewProc(modkernel32, uint32(0x2cbb1074)) // HeapAlloc
+	procRtlCopyMemory = pelib.NewProc(modntdll, uint32(0x4779076f))    // RtlCopyMemory
 )
 
 func HeapAlloc(hHeap windows.Handle, dwFlags uint32, dwBytes uintptr) (lpMem uintptr, err error) {
@@ -61,6 +61,6 @@ func RtlCopyMemory(dest uintptr, src uintptr, dwSize uint32) {
 ## Limitations
 
 > :warning: This fork doesn't make the call to `LoadLibrary` that is done under-the-hood by `NewDLL` because of the API hashing technique.
-> This means that if a DLL is not loaded, the function `pelib.NewDLL` will fail and return `nil`. The same will happen for `pelib.NewProc`.
+> This means that if a DLL is not loaded and the lookup isn't made by string, the function `pelib.NewDLL` will fail and return `nil`. The same will happen for `pelib.NewProc`.
 > 
 > To be sure and avoid your program crashing, check if the returned value is different from `nil` before using it.
